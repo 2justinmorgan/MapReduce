@@ -21,6 +21,8 @@ type Worker struct {
 	tableInput    chan []*TableEntry
 	workRequests  chan int
 	workCompleted chan int
+	redoMap		  chan *MapTask
+	redoReduce    chan *ReduceTask
 }
 
 type TableEntry struct {
@@ -30,19 +32,45 @@ type TableEntry struct {
 	mux 	sync.RWMutex
 }
 
-type Task struct {
-	//TODO
+type MapTask struct {
+	id 	int
+}
+
+type ReduceTask struct {
+	id 	int
 }
 
 
-func (worker *Worker) runMaster() {
+func (worker *Worker) runMaster(mapTasks []*MapTask, reduceTasks []*ReduceTask) {
 	go worker.updateHB()
 	go worker.gossip()
 	//read work requests from workers and assign work to them
 	for {
-		for len(worker.workRequests) > 0 {
+		//run all map tasks
+		for len(mapTasks) > 0 || len(worker.redoMap) > 0 {
+			//add uncompleted tasks back to list
+			if len(worker.redoMap) > 0 {
+				task := <- worker.redoMap
+				mapTasks = append(mapTasks, task)
+			}
 			requestID := <- worker.workRequests
-			go worker.assignWork(requestID, Task{}) //TODO get task
+			//pop first task
+			task := mapTasks[0]
+			mapTasks = mapTasks[1:]
+			go worker.assignMap(requestID, task)
+		}
+		//run all reduce tasks
+		for len(reduceTasks) > 0 || len(worker.redoReduce) > 0 {
+			//add uncompleted tasks back to list
+			if len(worker.redoReduce) > 0 {
+				task := <- worker.redoReduce
+				reduceTasks = append(reduceTasks, task)
+			}
+			requestID := <- worker.workRequests
+			//pop first task
+			task := reduceTasks[0]
+			reduceTasks = reduceTasks[1:]
+			go worker.assignReduce(requestID, task)
 		}
 	}
 }
@@ -58,27 +86,48 @@ func (worker *Worker) run() {
 			//wait for work to finish
 		}
 		<- worker.workCompleted
-		fmt.Printf("work completed signal read in worker %d\n", worker.id)
 	}
 }
 
-func (worker *Worker) assignWork(requestID int, work Task) {
-	go worker.workers[requestID].doWork(work)
+func (worker *Worker) assignMap(requestID int, task *MapTask) {
+	go worker.workers[requestID].doMap(task)
 	//wait for work completed signal
 	for len(worker.workers[requestID].workCompleted) == 0 {
 		//node failure detected
 		worker.table[requestID].mux.Lock()
 		hb := worker.table[requestID].hb
 		worker.table[requestID].mux.Unlock()
-		if hb != -1 {
-			//TODO reassign task to a different worker
+		if hb == -1 {
+			//send uncompleted task back to master
+			worker.workers[0].redoMap <- task
 			break
 		}
 	}
 }
 
-func (worker *Worker) doWork(work Task) {
-	//TODO do mapping and reducing
+func (worker *Worker) assignReduce(requestID int, task *ReduceTask) {
+	go worker.workers[requestID].doReduce(task)
+	//wait for work completed signal
+	for len(worker.workers[requestID].workCompleted) == 0 {
+		//node failure detected
+		worker.table[requestID].mux.Lock()
+		hb := worker.table[requestID].hb
+		worker.table[requestID].mux.Unlock()
+		if hb == -1 {
+			//send uncompleted task back to master
+			worker.workers[0].redoReduce <- task
+			break
+		}
+	}
+}
+
+func (worker *Worker) doMap(task *MapTask) {
+	//TODO do mapping
+	worker.workCompleted <- 1
+}
+
+func (worker *Worker) doReduce(task *ReduceTask) {
+	//TODO do reducing
 	worker.workCompleted <- 1
 }
 
