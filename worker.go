@@ -47,14 +47,14 @@ func (worker *Worker) runMaster(mapTasks []*MapTask, reduceTasks []*ReduceTask) 
 	//read work requests from workers and assign work to them
 	//first run all map tasks
 	for len(worker.workCompleted) < M {
-		if len(mapTasks) == 0 {
-			//wait for tasks to complete
-			continue
-		}
 		//add uncompleted tasks back to list
 		if len(worker.redoMap) > 0 {
 			task := <- worker.redoMap
 			mapTasks = append(mapTasks, task)
+		}
+		if len(mapTasks) == 0 {
+			//wait for tasks to complete
+			continue
 		}
 		requestID := <- worker.workRequests
 		//pop first task
@@ -65,14 +65,14 @@ func (worker *Worker) runMaster(mapTasks []*MapTask, reduceTasks []*ReduceTask) 
 	}
 	//run all reduce tasks
 	for len(worker.workCompleted) < M+R {
-		if len(reduceTasks) == 0 {
-			//wait for tasks to complete
-			continue
-		}
 		//add uncompleted tasks back to list
 		if len(worker.redoReduce) > 0 {
 			task := <- worker.redoReduce
 			reduceTasks = append(reduceTasks, task)
+		}
+		if len(reduceTasks) == 0 {
+			//wait for tasks to complete
+			continue
 		}
 		requestID := <- worker.workRequests
 		//pop first task
