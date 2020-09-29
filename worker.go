@@ -45,33 +45,41 @@ func (worker *Worker) runMaster(mapTasks []*MapTask, reduceTasks []*ReduceTask) 
 	go worker.updateHB()
 	go worker.gossip()
 	//read work requests from workers and assign work to them
-	for {
-		//run all map tasks
-		for len(mapTasks) > 0 || len(worker.redoMap) > 0 {
-			//add uncompleted tasks back to list
-			if len(worker.redoMap) > 0 {
-				task := <- worker.redoMap
-				mapTasks = append(mapTasks, task)
-			}
-			requestID := <- worker.workRequests
-			//pop first task
-			task := mapTasks[0]
-			mapTasks = mapTasks[1:]
-			go worker.assignMap(requestID, task)
+	//first run all map tasks
+	for len(worker.workCompleted) < M {
+		if len(mapTasks) == 0 {
+			//wait for tasks to complete
+			continue
 		}
-		//run all reduce tasks
-		for len(reduceTasks) > 0 || len(worker.redoReduce) > 0 {
-			//add uncompleted tasks back to list
-			if len(worker.redoReduce) > 0 {
-				task := <- worker.redoReduce
-				reduceTasks = append(reduceTasks, task)
-			}
-			requestID := <- worker.workRequests
-			//pop first task
-			task := reduceTasks[0]
-			reduceTasks = reduceTasks[1:]
-			go worker.assignReduce(requestID, task)
+		//add uncompleted tasks back to list
+		if len(worker.redoMap) > 0 {
+			task := <- worker.redoMap
+			mapTasks = append(mapTasks, task)
 		}
+		requestID := <- worker.workRequests
+		//pop first task
+		task := mapTasks[0]
+		mapTasks = mapTasks[1:]
+		fmt.Printf("assigning map %d to node %d\n", task.id, requestID)
+		go worker.assignMap(requestID, task)
+	}
+	//run all reduce tasks
+	for len(worker.workCompleted) < M+R {
+		if len(reduceTasks) == 0 {
+			//wait for tasks to complete
+			continue
+		}
+		//add uncompleted tasks back to list
+		if len(worker.redoReduce) > 0 {
+			task := <- worker.redoReduce
+			reduceTasks = append(reduceTasks, task)
+		}
+		requestID := <- worker.workRequests
+		//pop first task
+		task := reduceTasks[0]
+		reduceTasks = reduceTasks[1:]
+		fmt.Printf("assigning reduce %d to node %d\n", task.id, requestID)
+		go worker.assignReduce(requestID, task)
 	}
 }
 
@@ -123,12 +131,18 @@ func (worker *Worker) assignReduce(requestID int, task *ReduceTask) {
 
 func (worker *Worker) doMap(task *MapTask) {
 	//TODO do mapping
+	fmt.Printf("map task %d completed by node %d\n", task.id, worker.id)
 	worker.workCompleted <- 1
+	worker.workers[0].workCompleted <- 1
+	
 }
 
 func (worker *Worker) doReduce(task *ReduceTask) {
 	//TODO do reducing
+	fmt.Printf("reduce task %d completed by node %d\n", task.id, worker.id)
 	worker.workCompleted <- 1
+	worker.workers[0].workCompleted <- 1
+	
 }
 
 //update workers HB and clock periodically

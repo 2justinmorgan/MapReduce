@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+
 
 const numWorkers = 8
 //number of chunks of input data, this should be computed based on the file size
@@ -15,9 +17,10 @@ func main() {
 	for i := 1; i < numWorkers; i++ {
 		go workers[i].run()
 	}
-	for {
+	for len(workers[0].workCompleted) < M+R{
 		//let workers run
 	}
+	fmt.Printf("finished\n")
 }
 
 func build() ([]*Worker, []*MapTask, []*ReduceTask) {
