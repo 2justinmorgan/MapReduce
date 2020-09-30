@@ -16,3 +16,6 @@
 
 # the executable made via "go build main.go worker.go ..."
 main
+
+# chunk files are written during every runtime
+input_files/chunks/

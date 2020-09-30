@@ -26,7 +26,8 @@ func checkArgs(argc int, argv []string) string {
 
 func main() {
 	filename := checkArgs(len(os.Args), os.Args)
-	var _ = filename
+	chunkFiles := createChunkFiles(filename)
+	var _ = chunkFiles;
 
 	workers, mapTasks, reduceTaks := build()	
 	//master is worker with id 0
