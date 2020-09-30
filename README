@@ -3,5 +3,5 @@ team: Alexa White and Justin Morgan
 to compile:
     go build main.go worker.go
 
-ro run:
-    ./main
+to run:
+    ./main <input_file.txt>
