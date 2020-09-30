@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+)
 
 
 const numWorkers = 8
@@ -9,7 +12,22 @@ const M = 8
 //number of reduce tasks, we can also have this be a command line arg
 const R = 8
 
+func checkArgs(argc int, argv []string) string {
+	if argc != 2 {
+		fmt.Fprintf(os.Stderr, "Usage: ./main <input_file.txt>\n")
+		os.Exit(1)
+	}
+	if _, err := os.Stat(argv[1]); os.IsNotExist(err) {
+		fmt.Fprintf(os.Stderr, "'%s' not in current directory\n",argv[1])
+		os.Exit(1)
+	}
+	return argv[1]
+}
+
 func main() {
+	filename := checkArgs(len(os.Args), os.Args)
+	var _ = filename
+
 	workers, mapTasks, reduceTaks := build()	
 	//master is worker with id 0
 	go workers[0].runMaster(mapTasks, reduceTaks)
