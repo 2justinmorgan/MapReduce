@@ -129,6 +129,9 @@ func (worker *Worker) assignReduce(requestID int, task *ReduceTask) {
 	}
 }
 
+func mapAndPartition(chunkFilePath string, numOfPartitions int) {
+}
+
 func (worker *Worker) doMap(task *MapTask) {
 	//TODO do mapping
 	fmt.Printf("map task %d completed by node %d\n", task.id, worker.id)
