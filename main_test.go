@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"testing"
+	"io/ioutil"
 )
 
 func TestGetChunkFileName(t *testing.T) {
@@ -47,3 +48,44 @@ func TestGetChunkFileName(t *testing.T) {
 		});
 	}
 }
+
+func fwriteForTesting(fpath string, content string) error {
+   err := ioutil.WriteFile(fpath, []byte(content), 0644)
+	if err != nil {
+		return err;
+	}
+	return nil;
+}
+
+func TestFwriteForTesting(t *testing.T) {
+	var testCases = []struct {
+		fpath string
+		inputContent string
+	}{
+		{
+			"test_files/TestFwriteForTesting/testFwrite1",
+			"this\nis\nthe\tfirst  \ntest\n",
+		},
+		{
+			"test_files/TestFwriteForTesting/testFwrite2",
+			"\n\nanother\t 445   \ttest",
+		},
+	}
+
+	for i, testCase := range testCases {
+		testName := fmt.Sprintf("test%d %s",i,testCase.inputContent);
+		t.Run(testName, func(t *testing.T) {
+			writeErr := fwriteForTesting(testCase.fpath, testCase.inputContent);
+			fileContentBytes, readErr := ioutil.ReadFile(testCase.fpath);
+			fileContent := string(fileContentBytes);
+			if writeErr != nil {
+				t.Errorf("error writing '%s'\nmsg:\n%s", testCase.fpath, writeErr);
+			} else if readErr != nil {
+				t.Errorf("error reading '%s'\nmsg:\n%s", testCase.fpath, readErr);
+			} else if fileContent != testCase.inputContent {
+				t.Errorf("%s != %s", fileContent, testCase.inputContent);
+			}
+		});
+	}
+}
+
