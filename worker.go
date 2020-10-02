@@ -138,7 +138,20 @@ func mapAndPartition(chunkFilePath string, numOfPartitions int) {
 }
 
 func (worker *Worker) doMap(task *MapTask) {
-	//TODO do mapping
+	chunkFileContent := safeRead(task.chunk.Name());
+	keys := task.mapf("",chunkFileContent);
+	partitionsBuffers := make([]string, R);
+
+	for _, key := range keys {
+		partitionNum := hash(key) % R;
+		partitionsBuffers[partitionNum] += key+"\n";
+	}
+	for i := range partitionsBuffers {
+		partitionFilePath := fmt.Sprintf("%s_partition_%03d_of_%03d",
+			"partition_files/", i+1, R);
+		safeWrite(partitionFilePath, partitionsBuffers[i]);
+	}
+
 	fmt.Printf("map task %d completed by node %d\n", task.id, worker.id)
 	worker.workCompleted <- 1
 	worker.workers[0].workCompleted <- 1
