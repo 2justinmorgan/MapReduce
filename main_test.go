@@ -10,7 +10,7 @@ import (
 func TestGetChunkFileName(t *testing.T) {
 	var testCases = []struct {
 		fpath string
-		fnum, M int
+		workerNum, M int
 		expect string
 	}{
 		{
@@ -48,7 +48,8 @@ func TestGetChunkFileName(t *testing.T) {
 	for i, testCase := range testCases {
 		testName := fmt.Sprintf("test%d %s...",i,testCase.fpath[0:5]);
 		t.Run(testName, func(t *testing.T) {
-			actual := getChunkFileName(testCase.fpath,testCase.fnum,testCase.M);
+			actual := getChunkFileName(
+				testCase.fpath, testCase.workerNum, testCase.M);
 			if actual != testCase.expect {
 				t.Errorf("%s != %s", actual, testCase.expect);
 			}

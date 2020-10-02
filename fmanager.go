@@ -34,9 +34,9 @@ func safeWrite(filepath string, file *os.File, str string) {
 	}
 }
 
-func getChunkFileName(fpath string, fnum int, M int) string {
+func getChunkFileName(fpath string, workerNum int, M int) string {
 	prefix := "input_files/chunks/%s_chunk_%03d_of_%03d.txt";
-	chunkFileNum := fnum%M;
+	chunkFileNum := workerNum % M;
 	if chunkFileNum == 0 { chunkFileNum = M; }
 	chunkFileName := fmt.Sprintf(prefix, filepath.Base(fpath), chunkFileNum, M);
 	return chunkFileName;
