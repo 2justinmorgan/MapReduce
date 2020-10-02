@@ -1,4 +1,6 @@
-team: Alexa White and Justin Morgan
+# MapReduce
+
+contributors: Alexa White and Justin Morgan
 
 to compile:
     go build main.go worker.go fmanager.go
