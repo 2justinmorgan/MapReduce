@@ -8,6 +8,7 @@ import (
 	"hash/fnv"
 	"plugin"
 	"log"
+	"io/ioutil"
 )
 
 func safeOpen(filepath string, option string) *os.File {
@@ -24,6 +25,17 @@ func safeOpen(filepath string, option string) *os.File {
 		os.Exit(1);
 	}
 	return f;
+}
+
+func safeRead(filepath string) string {
+	fileContentBytes, readErr := ioutil.ReadFile(filepath);
+	fileContent := string(fileContentBytes);
+	if readErr != nil {
+		fmt.Fprintf(os.Stderr, "error reading file '%s'\nmsg:\n%s",
+			filepath, readErr);
+		os.Exit(1);
+	}
+	return fileContent;
 }
 
 func safeWrite(filepath string, file *os.File, str string) {

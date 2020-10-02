@@ -97,6 +97,37 @@ func TestFwriteForTesting(t *testing.T) {
 	}
 }
 
+func TestSafeRead(t *testing.T) {
+	var testCases = []struct {
+		inputFileContent string
+		filepath string
+	}{
+		{
+			"this is some file content",
+			"test_files/TestSafeRead/testSR01",
+		},
+		{
+			"\n\t here is another\n  \n \t   test case\n",
+			"test_files/TestSafeRead/testSR02",
+		},
+	}
+
+	for i, testCase := range testCases {
+		testName := fmt.Sprintf("test%d %s...",i,testCase.inputFileContent[0:5]);
+		t.Run(testName, func(t *testing.T) {
+			err := fwriteForTesting(testCase.filepath, testCase.inputFileContent);
+			if err != nil {
+				t.Errorf("error writing file '%s'\nmsg:\n%s",testCase.filepath, err);
+				t.FailNow();
+			}
+			actualFileContent := safeRead(testCase.filepath);
+			if actualFileContent != testCase.inputFileContent {
+				t.Errorf("%s != %s", actualFileContent, testCase.inputFileContent);
+			}
+		});
+	}
+}
+
 func TestHash(t *testing.T) {
 	var testCases = []struct {
 		inputString string
