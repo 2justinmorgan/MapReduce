@@ -27,9 +27,8 @@ func checkArgs(argc int, argv []string) (string, string) {
 func main() {
 	filename, sofilepath := checkArgs(len(os.Args), os.Args)
 	chunkFiles := createChunkFiles(filename)
-	var _ = chunkFiles;
 
-	workers, mapTasks, reduceTaks := build(sofilepath)	
+	workers, mapTasks, reduceTaks := build(sofilepath, chunkFiles)	
 	//master is worker with id 0
 	go workers[0].runMaster(mapTasks, reduceTaks)
 	//launch the rest of the workers
@@ -42,11 +41,18 @@ func main() {
 	fmt.Printf("finished\n")
 }
 
-func build(sofilepath string) ([]*Worker, []*MapTask, []*ReduceTask) {
+func build(sofilepath string, chunkFiles map[string]*os.File) ([]*Worker, []*MapTask, []*ReduceTask) {
 	workers := make([]*Worker, numWorkers)
 	mapTasks := make([]*MapTask, M)
 	reduceTasks := make([]*ReduceTask, R)
 	mapf, reducef := loadPlugin(sofilepath)
+
+	chunkFileNames := make([]string, len(chunkFiles))
+	i := 0;
+	for k := range chunkFiles { 
+		chunkFileNames[i] = k;
+		i++;
+	}
 
 	for i := 0; i < numWorkers; i++ {
 		workers[i] = &Worker{
@@ -67,6 +73,7 @@ func build(sofilepath string) ([]*Worker, []*MapTask, []*ReduceTask) {
 		mapTasks[i] = &MapTask{
 			id:		i,
 			mapf:		mapf,
+			chunk:	chunkFiles[chunkFileNames[i]],
 		}
 	}
 	for i := 0; i < R; i++ {

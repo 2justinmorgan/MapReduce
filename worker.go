@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"sync"
+	"os"
 )
 
 //seconds to wait before updating heartbeat
@@ -35,6 +36,7 @@ type TableEntry struct {
 type MapTask struct {
 	id 	int
 	mapf (func(string, string) []string)
+	chunk *os.File
 }
 
 type ReduceTask struct {
@@ -46,6 +48,7 @@ type ReduceTask struct {
 func (worker *Worker) runMaster(mapTasks []*MapTask, reduceTasks []*ReduceTask) {
 	go worker.updateHB()
 	go worker.gossip()
+
 	//read work requests from workers and assign work to them
 	//first run all map tasks
 	for len(worker.workCompleted) < M {
