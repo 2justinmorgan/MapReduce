@@ -167,8 +167,8 @@ func (worker *Worker) doReduce(task *ReduceTask) {
 	oname := fmt.Sprintf("./output_files/mr-out-%03d", task.id)
 	ofile, _ := os.Create(oname)
 
+	kva := []mr.KeyVal{}
 	for i := 0; i < M; i++ {
-		kva := []mr.KeyVal{}
 		filename := fmt.Sprintf("./intermediate_files/mr-%03d-%03d", i, task.id)
 		file := safeOpen(filename, "r")
 		dec := json.NewDecoder(file)
@@ -179,24 +179,21 @@ func (worker *Worker) doReduce(task *ReduceTask) {
 			}
 			kva = append(kva, kv)
 		}
-		sort.Slice(kva, func(i, j int) bool {
-  			return kva[i].Key < kva[j].Key
-		})
-
-		i := 0
-		for i < len(kva) {
-			j := i + 1
-			for j < len(kva) && kva[j].Key == kva[i].Key {
-				j++
-			}
-			values := []string{}
-			for k := i; k < j; k++ {
-				values = append(values, kva[k].Key)
-			}
-			output := task.reducef(kva[i].Key, values)
-			fmt.Fprintf(ofile, "%v %v\n", kva[i].Key, output)
-			i = j
+	}
+	sort.Sort(mr.KeyVals(kva))
+	i := 0
+	for i < len(kva) {
+		j := i + 1
+		for j < len(kva) && kva[j].Key == kva[i].Key {
+			j++
 		}
+		values := []string{}
+		for k := i; k < j; k++ {
+			values = append(values, kva[k].Val)
+		}
+		output := task.reducef(kva[i].Key, values)
+		fmt.Fprintf(ofile, "%v %v\n", kva[i].Key, output)
+		i = j
 	}
 	ofile.Close()
 	worker.workCompleted <- 1

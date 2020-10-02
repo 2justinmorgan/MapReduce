@@ -28,7 +28,7 @@ func Map(filename string, contents string) []mr.KeyVal {
 
 	kva := []mr.KeyVal{}
 	for _, w := range words {
-		kv := mr.KeyVal{w, 1}
+		kv := mr.KeyVal{w, "1"}
 		kva = append(kva, kv)
 	}
 	return kva
