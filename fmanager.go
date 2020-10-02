@@ -6,6 +6,8 @@ import (
 	"bufio"
 	"path/filepath"
 	"hash/fnv"
+	"plugin"
+	"log"
 )
 
 func safeOpen(filepath string, option string) *os.File {
@@ -78,4 +80,23 @@ func createChunkFiles(filepath string) map[string]*os.File {
 
 	file.Close();
 	return chunkFiles
+}
+
+func loadPlugin(filename string) (func(string, string) []string, func(string, []string) string) {
+	p, err := plugin.Open(filename)
+	if err != nil {
+		log.Fatalf("cannot load plugin %v", filename)
+	}
+	xmapf, err := p.Lookup("Map")
+	if err != nil {
+		log.Fatalf("cannot find Map in %v", filename)
+	}
+	mapf := xmapf.(func(string, string) []string)
+	xreducef, err := p.Lookup("Reduce")
+	if err != nil {
+		log.Fatalf("cannot find Reduce in %v", filename)
+	}
+	reducef := xreducef.(func(string, []string) string)
+
+	return mapf, reducef
 }

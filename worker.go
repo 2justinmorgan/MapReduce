@@ -34,10 +34,12 @@ type TableEntry struct {
 
 type MapTask struct {
 	id 	int
+	mapf (func(string, string) []string)
 }
 
 type ReduceTask struct {
 	id 	int
+	reducef (func(string, []string) string)
 }
 
 
