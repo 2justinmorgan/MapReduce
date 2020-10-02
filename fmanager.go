@@ -97,7 +97,8 @@ func createChunkFiles(filepath string) map[string]*os.File {
 
 	for scanner.Scan() {
 		lineNum++;
-		safeWrite(filepath, scanner.Text()+"\n");
+		chunkFileName := getChunkFileName(filepath, lineNum, M);
+		safeAppend(chunkFileName, scanner.Text()+"\n");
 	}
 
 	for _, file := range chunkFiles {
