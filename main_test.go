@@ -20,6 +20,12 @@ func TestGetChunkFileName(t *testing.T) {
 			"input_files/chunks/one.txt_chunk_007_of_008.txt",
 		},
 		{
+			"some.file",
+			35,
+			6,
+			"input_files/chunks/some.file_chunk_005_of_006.txt",
+		},
+		{
 			"./yes_file",
 			105,
 			200,
@@ -40,7 +46,7 @@ func TestGetChunkFileName(t *testing.T) {
 	}
 
 	for i, testCase := range testCases {
-		testName := fmt.Sprintf("test%d %s",i,testCase.fpath[0:10]);
+		testName := fmt.Sprintf("test%d %s...",i,testCase.fpath[0:5]);
 		t.Run(testName, func(t *testing.T) {
 			actual := getChunkFileName(testCase.fpath,testCase.fnum,testCase.M);
 			if actual != testCase.expect {
