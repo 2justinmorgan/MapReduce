@@ -9,6 +9,8 @@ package main
 import "unicode"
 import "strings"
 import "strconv"
+import "./mr"
+
 
 //
 // The map function is called once for each file of input. The first
@@ -17,14 +19,19 @@ import "strconv"
 // and look only at the contents argument. The return value is a slice
 // of key/value pairs.
 //
-func Map(filename string, contents string) []string {
+func Map(filename string, contents string) []mr.KeyVal {
 	// function to detect word separators.
 	ff := func(r rune) bool { return !unicode.IsLetter(r) }
 
 	// split contents into an array of words.
 	words := strings.FieldsFunc(contents, ff)
 
-	return words
+	kva := []mr.KeyVal{}
+	for _, w := range words {
+		kv := mr.KeyVal{w, 1}
+		kva = append(kva, kv)
+	}
+	return kva
 }
 
 //

@@ -9,6 +9,7 @@ import (
 	"plugin"
 	"log"
 	"io/ioutil"
+	"./mr"
 )
 
 func safeOpen(filepath string, option string) *os.File {
@@ -109,7 +110,7 @@ func createChunkFiles(filepath string) map[string]*os.File {
 	return chunkFiles
 }
 
-func loadPlugin(filename string) (func(string, string) []string, func(string, []string) string) {
+func loadPlugin(filename string) (func(string, string) []mr.KeyVal, func(string, []string) string) {
 	p, err := plugin.Open(filename)
 	if err != nil {
 		log.Fatalf("cannot load plugin %v", filename)
@@ -118,7 +119,7 @@ func loadPlugin(filename string) (func(string, string) []string, func(string, []
 	if err != nil {
 		log.Fatalf("cannot find Map in %v", filename)
 	}
-	mapf := xmapf.(func(string, string) []string)
+	mapf := xmapf.(func(string, string) []mr.KeyVal)
 	xreducef, err := p.Lookup("Reduce")
 	if err != nil {
 		log.Fatalf("cannot find Reduce in %v", filename)

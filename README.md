@@ -3,6 +3,7 @@
 contributors: Alexa White and Justin Morgan
 
 to build plugin(s):
+    go build mr/mr.go
     go build -buildmode=plugin <*.go>...
 
 to compile:

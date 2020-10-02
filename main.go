@@ -5,7 +5,6 @@ import (
 	"os"
 )
 
-
 const numWorkers = 8
 //number of chunks of input data, this should be computed based on the file size
 const M = 8

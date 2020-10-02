@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"sync"
 	"os"
+	"./mr"
 )
 
 //seconds to wait before updating heartbeat
@@ -35,7 +36,7 @@ type TableEntry struct {
 
 type MapTask struct {
 	id 	int
-	mapf (func(string, string) []string)
+	mapf (func(string, string) []mr.KeyVal)
 	chunk *os.File
 }
 
@@ -134,23 +135,19 @@ func (worker *Worker) assignReduce(requestID int, task *ReduceTask) {
 	}
 }
 
-func mapAndPartition(chunkFilePath string, numOfPartitions int) {
-}
-
 func (worker *Worker) doMap(task *MapTask) {
 	chunkFileContent := safeRead(task.chunk.Name());
-	keys := task.mapf("",chunkFileContent);
-	partitionsBuffers := make([]string, R);
-
-	for _, key := range keys {
-		partitionNum := hash(key) % R;
-		partitionsBuffers[partitionNum] += key+"\n";
+	kva := task.mapf(task.chunk.Name(),chunkFileContent);
+	m := make(map[int][]mr.KeyVal, R)
+	for _, kv := range kva {
+		partitionNum := hash(kv.Key) % R;
+		m[partitionNum] = append(m[partitionNum], kv) 
 	}
-	for i := range partitionsBuffers {
-		partitionFilePath := fmt.Sprintf("%s_partition_%03d_of_%03d",
-			"partition_files/", i+1, R);
-		safeWrite(partitionFilePath, partitionsBuffers[i]);
-	}
+	// for i := range partitionsBuffers {
+	// 	partitionFilePath := fmt.Sprintf("%s_partition_%03d_of_%03d",
+	// 		"partition_files/", i+1, R);
+	// 	safeWrite(partitionFilePath, partitionsBuffers[i]);
+	// }
 
 	fmt.Printf("map task %d completed by node %d\n", task.id, worker.id)
 	worker.workCompleted <- 1
