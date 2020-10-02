@@ -5,6 +5,7 @@ import (
 	"os"
 	"bufio"
 	"path/filepath"
+	"hash/fnv"
 )
 
 func safeOpen(filepath string, option string) *os.File {
@@ -43,6 +44,12 @@ func checkDirExists(dirpath string) {
 	if _, err := os.Stat(dirpath); os.IsNotExist(err) {
 		os.Mkdir(dirpath, 0755)
 	}
+}
+
+func hash(str string) int {
+	hashVal := fnv.New32a();
+	hashVal.Write([]byte(str));
+	return int(hashVal.Sum32());
 }
 
 func createChunkFiles(filepath string) map[string]*os.File {

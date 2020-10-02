@@ -90,6 +90,28 @@ func TestFwriteForTesting(t *testing.T) {
 	}
 }
 
+func TestHash(t *testing.T) {
+	var testCases = []struct {
+		inputString string
+		expectHashValue int
+	}{
+		{"wordX",1941425855},
+		{"spacing in the input string",982984679},
+		{"random-word-5000:",1166272117},
+		{"",2166136261},
+	}
+
+	for i, testCase := range testCases {
+		testName := fmt.Sprintf("test%d %s",i,testCase.inputString);
+		t.Run(testName, func(t *testing.T) {
+			actualHashValue := hash(testCase.inputString);
+			if  actualHashValue!= testCase.expectHashValue {
+				t.Errorf("%d != %d", actualHashValue, testCase.expectHashValue);
+			}
+		});
+	}
+}
+
 func TestMapAndPartition(t *testing.T) {
 	var testCases = []struct {
 		chunkFilePath string
