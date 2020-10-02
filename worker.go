@@ -9,6 +9,7 @@ import (
 	"./mr"
 	"io/ioutil"
 	"encoding/json"
+	"sort"
 )
 
 //seconds to wait before updating heartbeat
@@ -46,7 +47,6 @@ type ReduceTask struct {
 	id 	int
 	reducef (func(string, []string) string)
 }
-
 
 func (worker *Worker) runMaster(mapTasks []*MapTask, reduceTasks []*ReduceTask) {
 	go worker.updateHB()
@@ -163,9 +163,42 @@ func (worker *Worker) doMap(task *MapTask) {
 }
 
 func (worker *Worker) doReduce(task *ReduceTask) {
-	//TODO do reducing
 	
-	
+	oname := fmt.Sprintf("mr-out-%03d", task.id)
+	ofile, _ := os.Create(oname)
+
+	for i := 0; i < M; i++ {
+		kva := []mr.KeyVal{}
+		filename := fmt.Sprintf("./intermediate_files/mr-%03d-%03d", i, task.id)
+		file := safeOpen(filename, "r")
+		dec := json.NewDecoder(file)
+		for {
+			var kv mr.KeyVal
+			if err := dec.Decode(&kv); err != nil {
+				break
+			}
+			kva = append(kva, kv)
+		}
+		sort.Slice(kva, func(i, j int) bool {
+  			return kva[i].Key < kva[j].Key
+		})
+
+		i := 0
+		for i < len(kva) {
+			j := i + 1
+			for j < len(kva) && kva[j].Key == kva[i].Key {
+				j++
+			}
+			values := []string{}
+			for k := i; k < j; k++ {
+				values = append(values, kva[k].Key)
+			}
+			output := task.reducef(kva[i].Key, values)
+			fmt.Fprintf(ofile, "%v %v\n", kva[i].Key, output)
+			i = j
+		}
+	}
+	ofile.Close()
 	worker.workCompleted <- 1
 	worker.workers[0].workCompleted <- 1
 	
@@ -250,3 +283,4 @@ func (worker *Worker) printTable() {
 	}
 	fmt.Printf("\n")
 }
+
