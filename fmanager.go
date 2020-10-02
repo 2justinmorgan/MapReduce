@@ -47,6 +47,21 @@ func safeWrite(filepath string, content string) {
    }
 }
 
+func safeAppend(filepath string, content string) {
+	f, err := os.OpenFile(filepath,os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error opening file '%s'\nmsg:\n%s\n",
+			filepath, err);
+		os.Exit(1);
+	}
+	defer f.Close();
+	if _, err := f.WriteString(content); err != nil {
+		fmt.Fprintf(os.Stderr, "error appending file '%s'\nmsg:\n%s\n",
+			filepath, err);
+		os.Exit(1);
+	}
+}
+
 func getChunkFileName(fpath string, workerNum int, M int) string {
 	prefix := "input_files/chunks/%s_chunk_%03d_of_%03d.txt";
 	chunkFileNum := workerNum % M;

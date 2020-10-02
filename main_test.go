@@ -87,6 +87,40 @@ func TestSafeWrite(t *testing.T) {
 	}
 }
 
+func TestSafeAppend(t *testing.T) {
+	var testCases = []struct {
+		filepath string
+		preExistingFileContent string
+		fileContentToAppend string
+	}{
+		{
+			"test_files/TestFwriteForTesting/testFappend1",
+			"this is file content that exists prior to testing\n",
+			"here is some file content that should be appended\n",
+		},
+		{
+			"test_files/TestFwriteForTesting/testFappend2",
+			" \t  \n \t\t  some strange\n\t formatting 89829 *9` \n",
+			"  \n more that \t \n should be appended \t\n",
+		},
+	}
+
+	for i, testCase := range testCases {
+		testName := fmt.Sprintf("test%d %s",i,testCase.preExistingFileContent);
+		t.Run(testName, func(t *testing.T) {
+			safeWrite(testCase.filepath, testCase.preExistingFileContent);
+			safeAppend(testCase.filepath, testCase.fileContentToAppend);
+			expectedFinalFileContent := 
+				testCase.preExistingFileContent + testCase.fileContentToAppend;
+			appendedFinalFileContent := safeRead(testCase.filepath);
+			if appendedFinalFileContent != expectedFinalFileContent {
+				t.Errorf("\n%s != \n%s", 
+					appendedFinalFileContent, expectedFinalFileContent);
+			}
+		});
+	}
+}
+
 func TestSafeRead(t *testing.T) {
 	var testCases = []struct {
 		inputFileContent string
