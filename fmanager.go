@@ -38,12 +38,13 @@ func safeRead(filepath string) string {
 	return fileContent;
 }
 
-func safeWrite(filepath string, file *os.File, str string) {
-	_, err := file.WriteString(str);
+func safeWrite(filepath string, content string) {
+   err := ioutil.WriteFile(filepath, []byte(content), 0644)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error writing file '%s'\n",filepath);
+		fmt.Fprintf(os.Stderr, "error writing file '%s'\nmsg:\n%s\n",
+			filepath, err);
 		os.Exit(1);
-	}
+   }
 }
 
 func getChunkFileName(fpath string, workerNum int, M int) string {
@@ -81,9 +82,7 @@ func createChunkFiles(filepath string) map[string]*os.File {
 
 	for scanner.Scan() {
 		lineNum++;
-		chunkFileName := getChunkFileName(filepath, lineNum, M);
-		chunkFile := chunkFiles[chunkFileName];
-		safeWrite(filepath, chunkFile, scanner.Text()+"\n");
+		safeWrite(filepath, scanner.Text()+"\n");
 	}
 
 	for _, file := range chunkFiles {

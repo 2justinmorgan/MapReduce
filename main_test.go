@@ -57,15 +57,7 @@ func TestGetChunkFileName(t *testing.T) {
 	}
 }
 
-func fwriteForTesting(fpath string, content string) error {
-   err := ioutil.WriteFile(fpath, []byte(content), 0644)
-	if err != nil {
-		return err;
-	}
-	return nil;
-}
-
-func TestFwriteForTesting(t *testing.T) {
+func TestSafeWrite(t *testing.T) {
 	var testCases = []struct {
 		fpath string
 		inputContent string
@@ -83,12 +75,10 @@ func TestFwriteForTesting(t *testing.T) {
 	for i, testCase := range testCases {
 		testName := fmt.Sprintf("test%d %s",i,testCase.inputContent);
 		t.Run(testName, func(t *testing.T) {
-			writeErr := fwriteForTesting(testCase.fpath, testCase.inputContent);
+			safeWrite(testCase.fpath, testCase.inputContent);
 			fileContentBytes, readErr := ioutil.ReadFile(testCase.fpath);
 			fileContent := string(fileContentBytes);
-			if writeErr != nil {
-				t.Errorf("error writing '%s'\nmsg:\n%s", testCase.fpath, writeErr);
-			} else if readErr != nil {
+			if readErr != nil {
 				t.Errorf("error reading '%s'\nmsg:\n%s", testCase.fpath, readErr);
 			} else if fileContent != testCase.inputContent {
 				t.Errorf("%s != %s", fileContent, testCase.inputContent);
@@ -115,11 +105,7 @@ func TestSafeRead(t *testing.T) {
 	for i, testCase := range testCases {
 		testName := fmt.Sprintf("test%d %s...",i,testCase.inputFileContent[0:5]);
 		t.Run(testName, func(t *testing.T) {
-			err := fwriteForTesting(testCase.filepath, testCase.inputFileContent);
-			if err != nil {
-				t.Errorf("error writing file '%s'\nmsg:\n%s",testCase.filepath, err);
-				t.FailNow();
-			}
+			safeWrite(testCase.filepath, testCase.inputFileContent);
 			actualFileContent := safeRead(testCase.filepath);
 			if actualFileContent != testCase.inputFileContent {
 				t.Errorf("%s != %s", actualFileContent, testCase.inputFileContent);
@@ -210,14 +196,7 @@ func TestMapAndPartition(t *testing.T) {
 
 			// make chunk file
 			os.Remove(testCase.chunkFilePath);
-			chunkWriteErr := fwriteForTesting(
-				testCase.chunkFilePath, testCase.chunkFileContent);
-			//chunkFile, chunkOpenErr := os.Open(testCase.chunkFilePath);
-			if chunkWriteErr != nil {
-				t.Errorf("error writing chunk '%s'\nmsg:\n%s",
-					testCase.chunkFilePath, chunkWriteErr);
-				t.FailNow();
-			}
+			safeWrite(testCase.chunkFilePath, testCase.chunkFileContent);
 			mapAndPartition(testCase.chunkFilePath, testCase.numOfPartitions);
 
 			// test every partition file created
