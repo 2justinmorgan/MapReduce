@@ -7,6 +7,8 @@ import (
 	"sync"
 	"os"
 	"./mr"
+	"io/ioutil"
+	"encoding/json"
 )
 
 //seconds to wait before updating heartbeat
@@ -66,7 +68,6 @@ func (worker *Worker) runMaster(mapTasks []*MapTask, reduceTasks []*ReduceTask) 
 		//pop first task
 		task := mapTasks[0]
 		mapTasks = mapTasks[1:]
-		fmt.Printf("assigning map %d to node %d\n", task.id, requestID)
 		go worker.assignMap(requestID, task)
 	}
 	//run all reduce tasks
@@ -84,7 +85,6 @@ func (worker *Worker) runMaster(mapTasks []*MapTask, reduceTasks []*ReduceTask) 
 		//pop first task
 		task := reduceTasks[0]
 		reduceTasks = reduceTasks[1:]
-		fmt.Printf("assigning reduce %d to node %d\n", task.id, requestID)
 		go worker.assignReduce(requestID, task)
 	}
 }
@@ -136,28 +136,36 @@ func (worker *Worker) assignReduce(requestID int, task *ReduceTask) {
 }
 
 func (worker *Worker) doMap(task *MapTask) {
-	chunkFileContent := safeRead(task.chunk.Name());
-	kva := task.mapf(task.chunk.Name(),chunkFileContent);
+	chunkFileContent := safeRead(task.chunk.Name())
+	kva := task.mapf(task.chunk.Name(),chunkFileContent)
 	m := make(map[int][]mr.KeyVal, R)
 	for _, kv := range kva {
-		partitionNum := hash(kv.Key) % R;
+		partitionNum := hash(kv.Key) % R
 		m[partitionNum] = append(m[partitionNum], kv) 
 	}
-	// for i := range partitionsBuffers {
-	// 	partitionFilePath := fmt.Sprintf("%s_partition_%03d_of_%03d",
-	// 		"partition_files/", i+1, R);
-	// 	safeWrite(partitionFilePath, partitionsBuffers[i]);
-	// }
-
-	fmt.Printf("map task %d completed by node %d\n", task.id, worker.id)
+	files := make([]*os.File, R)
+	for i := 0; i < R; i++ {
+		tempname := fmt.Sprintf("temp-mr-%03d-%03d", task.id, i)
+		files[i], _ = ioutil.TempFile("./intermediate_files", tempname)
+		enc := json.NewEncoder(files[i])
+		for _, kv := range m[i] {
+			enc.Encode(&kv)
+		}
+	}
+	//rename files once work is completed
+	for i := 0; i < R; i++ {
+		filename := fmt.Sprintf("./intermediate_files/mr-%03d-%03d", task.id, i)
+		os.Rename(files[i].Name(), filename)
+		os.Remove(files[i].Name())
+	}
 	worker.workCompleted <- 1
 	worker.workers[0].workCompleted <- 1
-	
 }
 
 func (worker *Worker) doReduce(task *ReduceTask) {
 	//TODO do reducing
-	fmt.Printf("reduce task %d completed by node %d\n", task.id, worker.id)
+	
+	
 	worker.workCompleted <- 1
 	worker.workers[0].workCompleted <- 1
 	
