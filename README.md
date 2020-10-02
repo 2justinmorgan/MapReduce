@@ -2,11 +2,14 @@
 
 contributors: Alexa White and Justin Morgan
 
+to build plugin(s):
+    go build -buildmode=plugin <*.go>...
+
 to compile:
     go build main.go worker.go fmanager.go
 
 to run:
-    ./main <input_file.txt>
+    ./main <input_file.txt> <*.so>
 	
 to test:
     go test
