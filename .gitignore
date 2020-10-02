@@ -13,3 +13,12 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+# the executable made via "go build main.go worker.go ..."
+main
+
+# files written during every runtime
+input_files/chunks/
+partition_files/
+
+*.DS_Store
