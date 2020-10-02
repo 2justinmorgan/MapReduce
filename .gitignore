@@ -21,3 +21,4 @@ main
 input_files/chunks/
 partition_files/
 
+*.DS_Store
