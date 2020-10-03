@@ -7,15 +7,18 @@ package main
 //
 
 import "fmt"
-import "../mr"
+import "./mr"
 import "plugin"
 import "os"
 import "log"
 import "io/ioutil"
 import "sort"
+import "strings"
 
+//num reduce tasks for output comparison
+const R = 8
 // for sorting by key.
-type ByKey []mr.KeyValue
+type ByKey []mr.KeyVal
 
 // for sorting by key.
 func (a ByKey) Len() int           { return len(a) }
@@ -35,7 +38,7 @@ func main() {
 	// pass it to Map,
 	// accumulate the intermediate Map output.
 	//
-	intermediate := []mr.KeyValue{}
+	intermediate := []mr.KeyVal{}
 	for _, filename := range os.Args[2:] {
 		file, err := os.Open(filename)
 		if err != nil {
@@ -58,7 +61,7 @@ func main() {
 
 	sort.Sort(ByKey(intermediate))
 
-	oname := "mr-out-0"
+	oname := "mr-seq-out-0"
 	ofile, _ := os.Create(oname)
 
 	//
@@ -73,7 +76,7 @@ func main() {
 		}
 		values := []string{}
 		for k := i; k < j; k++ {
-			values = append(values, intermediate[k].Value)
+			values = append(values, intermediate[k].Val)
 		}
 		output := reducef(intermediate[i].Key, values)
 
@@ -84,13 +87,32 @@ func main() {
 	}
 
 	ofile.Close()
+
+	filepath := fmt.Sprintf("./mr-out-0")
+	sorted_out, _ := os.Create(filepath);
+
+	content := []string{}
+	for i = 0; i < R; i++ {
+		fname := fmt.Sprintf("./output_files/mr-out-%03d", i)
+		s, _ := (ioutil.ReadFile(fname))
+		temp := strings.Split(string(s),"\n")
+		content = append(content, temp...)
+	}
+	
+	sort.Strings(content)
+	for _, line := range content {
+		if line != "" {
+			fmt.Fprintf(sorted_out, line + "\n")
+		}
+	}
+	sorted_out.Close()
 }
 
 //
 // load the application Map and Reduce functions
 // from a plugin file, e.g. ../mrapps/wc.so
 //
-func loadPlugin(filename string) (func(string, string) []mr.KeyValue, func(string, []string) string) {
+func loadPlugin(filename string) (func(string, string) []mr.KeyVal, func(string, []string) string) {
 	p, err := plugin.Open(filename)
 	if err != nil {
 		log.Fatalf("cannot load plugin %v", filename)
@@ -99,7 +121,7 @@ func loadPlugin(filename string) (func(string, string) []mr.KeyValue, func(strin
 	if err != nil {
 		log.Fatalf("cannot find Map in %v", filename)
 	}
-	mapf := xmapf.(func(string, string) []mr.KeyValue)
+	mapf := xmapf.(func(string, string) []mr.KeyVal)
 	xreducef, err := p.Lookup("Reduce")
 	if err != nil {
 		log.Fatalf("cannot find Reduce in %v", filename)
