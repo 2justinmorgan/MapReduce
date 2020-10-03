@@ -27,14 +27,8 @@ func main() {
 	filename, sofilepath := checkArgs(len(os.Args), os.Args)
 	chunkFiles := createChunkFiles(filename)
 	//make dir for intermediate files and output files to go in
-	path := "./intermediate_files"
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-    	os.Mkdir(path, 0700)
-	}
-	path = "./output_files"
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-    	os.Mkdir(path, 0700)
-	}
+	checkDirExists("./intermediate_files")
+	checkDirExists("./output_files")
 
 	workers, mapTasks, reduceTaks := build(sofilepath, chunkFiles)	
 	//master is worker with id 0

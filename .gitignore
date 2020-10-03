@@ -20,5 +20,7 @@ main
 # files written during every runtime
 input_files/chunks/
 partition_files/
+intermediate_files/
+output_files/
 
 *.DS_Store
