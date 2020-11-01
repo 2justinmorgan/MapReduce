@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"./mr"
 )
 
 const numWorkers = 8
@@ -52,11 +53,12 @@ func buildWorkers(numWorkers int) []*Worker {
 	return workers
 }
 
-func build(sofilepath string, chunkFiles map[string]*os.File) ([]*Worker, []*MapTask, []*ReduceTask) {
-	workers := buildWorkers(numWorkers)
+func buildMapTasks(
+	M int,
+	chunkFiles map[string]*os.File,
+	mapf (func(string,string) []mr.KeyVal)) []*MapTask {
+
 	mapTasks := make([]*MapTask, M)
-	reduceTasks := make([]*ReduceTask, R)
-	mapf, reducef := loadPlugin(sofilepath)
 
 	chunkFileNames := make([]string, len(chunkFiles))
 	i := 0;
@@ -72,6 +74,15 @@ func build(sofilepath string, chunkFiles map[string]*os.File) ([]*Worker, []*Map
 			chunk:	chunkFiles[chunkFileNames[i]],
 		}
 	}
+	return mapTasks
+}
+
+func build(sofilepath string, chunkFiles map[string]*os.File) ([]*Worker, []*MapTask, []*ReduceTask) {
+	mapf, reducef := loadPlugin(sofilepath)
+	workers := buildWorkers(numWorkers)
+	mapTasks := buildMapTasks(M, chunkFiles, mapf)
+	reduceTasks := make([]*ReduceTask, R)
+
 	for i := 0; i < R; i++ {
 		reduceTasks[i] = &ReduceTask{
 			id:		i,
