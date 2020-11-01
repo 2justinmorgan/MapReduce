@@ -31,18 +31,8 @@ func main() {
 	launchWorkers(sofilepath, chunkFiles)
 }
 
-func build(sofilepath string, chunkFiles map[string]*os.File) ([]*Worker, []*MapTask, []*ReduceTask) {
+func buildWorkers(numWorkers int) []*Worker {
 	workers := make([]*Worker, numWorkers)
-	mapTasks := make([]*MapTask, M)
-	reduceTasks := make([]*ReduceTask, R)
-	mapf, reducef := loadPlugin(sofilepath)
-
-	chunkFileNames := make([]string, len(chunkFiles))
-	i := 0;
-	for k := range chunkFiles { 
-		chunkFileNames[i] = k;
-		i++;
-	}
 
 	for i := 0; i < numWorkers; i++ {
 		workers[i] = &Worker{
@@ -59,6 +49,22 @@ func build(sofilepath string, chunkFiles map[string]*os.File) ([]*Worker, []*Map
 			workers[i].table[j] = &TableEntry{id: j, hb: 0, t: 0}
 		}
 	}
+	return workers
+}
+
+func build(sofilepath string, chunkFiles map[string]*os.File) ([]*Worker, []*MapTask, []*ReduceTask) {
+	workers := buildWorkers(numWorkers)
+	mapTasks := make([]*MapTask, M)
+	reduceTasks := make([]*ReduceTask, R)
+	mapf, reducef := loadPlugin(sofilepath)
+
+	chunkFileNames := make([]string, len(chunkFiles))
+	i := 0;
+	for k := range chunkFiles { 
+		chunkFileNames[i] = k;
+		i++;
+	}
+
 	for i := 0; i < M; i++ {
 		mapTasks[i] = &MapTask{
 			id:		i,
