@@ -18,6 +18,7 @@ go build mr/mr.go; if [[ $? -eq 1 ]]; then exit 1; fi
 go build -buildmode=plugin wc.go; if [[ $? -eq 1 ]]; then exit 1; fi
 echo built;
 
+rm main
 # compile
 printf "compiling source ... ";
 go build main.go worker.go fmanager.go; if [[ $? -eq 1 ]]; then exit 1; fi
