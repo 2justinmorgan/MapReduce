@@ -281,3 +281,17 @@ func (worker *Worker) printTable() {
 	fmt.Printf("\n")
 }
 
+func launchWorkers(sofilepath string, chunkFiles map[string]*os.File) {
+	workers, mapTasks, reduceTaks := build(sofilepath, chunkFiles)
+	//master is worker with id 0
+	go workers[0].runMaster(mapTasks, reduceTaks)
+	//launch the rest of the workers
+	for i := 1; i < numWorkers; i++ {
+		go workers[i].run()
+	}
+	for len(workers[0].workCompleted) < M+R{
+		//let workers run
+	}
+}
+
+
