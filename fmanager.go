@@ -128,3 +128,17 @@ func loadPlugin(filename string) (func(string, string) []mr.KeyVal, func(string,
 
 	return mapf, reducef
 }
+
+func createOutputDirs(dirs []string) {
+	//make dir for intermediate files and output files to go in
+	path := "./intermediate_files"
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+    	os.Mkdir(path, 0700)
+	}
+	path = "./output_files"
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+    	os.Mkdir(path, 0700)
+	}
+}
+
+

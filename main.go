@@ -26,16 +26,8 @@ func checkArgs(argc int, argv []string) (string, string) {
 func main() {
 	filename, sofilepath := checkArgs(len(os.Args), os.Args)
 	chunkFiles := createChunkFiles(filename)
-	//make dir for intermediate files and output files to go in
-	path := "./intermediate_files"
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-    	os.Mkdir(path, 0700)
-	}
-	path = "./output_files"
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-    	os.Mkdir(path, 0700)
-	}
 
+	createOutputDirs([]string {"./intermediate_files","./output_files"})
 	launchWorkers(sofilepath, chunkFiles)
 }
 
