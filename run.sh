@@ -3,14 +3,14 @@ this_filename=$(echo "$0" | rev | cut -d'/' -f1 | rev);
 usage="Usage: $this_filename <input_file>"
 
 if [[ $# -ne 1 ]]; then
-	echo $usage;
-	exit;
+	>&2 echo $usage;
+	exit 1;
 fi
 
 input_file="$1";
 if [[ ! -f $input_file ]]; then
-	echo "$this_filename: input file \"$input_file\" not found";
-	exit;
+	>&2 echo "$this_filename: input file \"$input_file\" not found";
+	exit 1;
 fi
 
 printf "building plugin(s) ... ";
