@@ -77,10 +77,10 @@ func buildMapTasks(
 	return mapTasks
 }
 
-func build(sofilepath string, chunkFiles map[string]*os.File) ([]*Worker, []*MapTask, []*ReduceTask) {
-	mapf, reducef := loadPlugin(sofilepath)
-	workers := buildWorkers(numWorkers)
-	mapTasks := buildMapTasks(M, chunkFiles, mapf)
+func buildReduceTasks(
+	R int,
+	reducef (func(string,[]string) string)) []*ReduceTask {
+
 	reduceTasks := make([]*ReduceTask, R)
 
 	for i := 0; i < R; i++ {
@@ -89,6 +89,15 @@ func build(sofilepath string, chunkFiles map[string]*os.File) ([]*Worker, []*Map
 			reducef:	reducef,
 		}
 	}
+	return reduceTasks
+}
+
+func build(sofilepath string, chunkFiles map[string]*os.File) ([]*Worker, []*MapTask, []*ReduceTask) {
+	mapf, reducef := loadPlugin(sofilepath)
+	workers := buildWorkers(numWorkers)
+	mapTasks := buildMapTasks(M, chunkFiles, mapf)
+	reduceTasks := buildReduceTasks(R, reducef)
+
 	return workers, mapTasks, reduceTasks
 }
 
