@@ -49,12 +49,13 @@ type ReduceTask struct {
 }
 
 func (worker *Worker) runMaster(mapTasks []*MapTask, reduceTasks []*ReduceTask) {
+	numMapTasks := len(mapTasks)
 	go worker.updateHB()
 	go worker.gossip()
 
 	//read work requests from workers and assign work to them
 	//first run all map tasks
-	for len(worker.workCompleted) < M {
+	for len(worker.workCompleted) < numMapTasks {
 		//add uncompleted tasks back to list
 		if len(worker.redoMap) > 0 {
 			task := <- worker.redoMap
@@ -71,7 +72,7 @@ func (worker *Worker) runMaster(mapTasks []*MapTask, reduceTasks []*ReduceTask) 
 		go worker.assignMap(requestID, task)
 	}
 	//run all reduce tasks
-	for len(worker.workCompleted) < M+R {
+	for len(worker.workCompleted) < numMapTasks+R {
 		//add uncompleted tasks back to list
 		if len(worker.redoReduce) > 0 {
 			task := <- worker.redoReduce
@@ -85,7 +86,7 @@ func (worker *Worker) runMaster(mapTasks []*MapTask, reduceTasks []*ReduceTask) 
 		//pop first task
 		task := reduceTasks[0]
 		reduceTasks = reduceTasks[1:]
-		go worker.assignReduce(requestID, task)
+		go worker.assignReduce(requestID, task, numMapTasks)
 	}
 }
 
@@ -119,8 +120,12 @@ func (worker *Worker) assignMap(requestID int, task *MapTask) {
 	}
 }
 
-func (worker *Worker) assignReduce(requestID int, task *ReduceTask) {
-	go worker.workers[requestID].doReduce(task)
+func (worker *Worker) assignReduce(
+	requestID int,
+	task *ReduceTask,
+	numMapTasks int) {
+
+	go worker.workers[requestID].doReduce(task, numMapTasks)
 	//wait for work completed signal
 	for len(worker.workers[requestID].workCompleted) == 0 {
 		//node failure detected
@@ -162,13 +167,13 @@ func (worker *Worker) doMap(task *MapTask) {
 	worker.workers[0].workCompleted <- 1
 }
 
-func (worker *Worker) doReduce(task *ReduceTask) {
+func (worker *Worker) doReduce(task *ReduceTask, numMapTasks int) {
 	
 	oname := fmt.Sprintf("./output_files/mr-out-%03d", task.id)
 	ofile, _ := os.Create(oname)
 
 	kva := []mr.KeyVal{}
-	for i := 0; i < M; i++ {
+	for i := 0; i < numMapTasks; i++ {
 		filename := fmt.Sprintf("./intermediate_files/mr-%03d-%03d", i, task.id)
 		file := safeOpen(filename, "r")
 		dec := json.NewDecoder(file)
@@ -281,20 +286,24 @@ func (worker *Worker) printTable() {
 	fmt.Printf("\n")
 }
 
-func launchWorkers(sofilepath string, chunkFiles map[string]*os.File) {
-	workers, mapTasks, reduceTaks := build(sofilepath, chunkFiles)
+func launchWorkers(
+	sofilepath string,
+	chunkFiles map[string]*os.File,
+	numMapTasks int) {
+
+	workers, mapTasks, reduceTaks := build(sofilepath, chunkFiles, numMapTasks)
 	//master is worker with id 0
 	go workers[0].runMaster(mapTasks, reduceTaks)
 	//launch the rest of the workers
 	for i := 1; i < numWorkers; i++ {
 		go workers[i].run()
 	}
-	for len(workers[0].workCompleted) < M+R{
+	for len(workers[0].workCompleted) < numMapTasks+R{
 		//let workers run
 	}
 }
 
-func buildWorkers(numWorkers int) []*Worker {
+func buildWorkers(numWorkers int, numMapTasks int) []*Worker {
 	workers := make([]*Worker, numWorkers)
 
 	for i := 0; i < numWorkers; i++ {
@@ -303,9 +312,9 @@ func buildWorkers(numWorkers int) []*Worker {
 			workers:  		workers,
 			table:			make([]*TableEntry, numWorkers),
 			tableInput:    make(chan []*TableEntry, numWorkers*2),
-			workRequests:  make(chan int, M*R),
-			workCompleted: make(chan int, M*R),
-			redoMap:			make(chan *MapTask, M),
+			workRequests:  make(chan int, numMapTasks*R),
+			workCompleted: make(chan int, numMapTasks*R),
+			redoMap:			make(chan *MapTask, numMapTasks),
 			redoReduce:		make(chan *ReduceTask, R),
 		}
 		for j := 0; j < numWorkers; j++ {
@@ -316,11 +325,11 @@ func buildWorkers(numWorkers int) []*Worker {
 }
 
 func buildMapTasks(
-	M int,
+	numMapTasks int,
 	chunkFiles map[string]*os.File,
 	mapf (func(string,string) []mr.KeyVal)) []*MapTask {
 
-	mapTasks := make([]*MapTask, M)
+	mapTasks := make([]*MapTask, numMapTasks)
 
 	chunkFileNames := make([]string, len(chunkFiles))
 	i := 0;
@@ -329,7 +338,7 @@ func buildMapTasks(
 		i++;
 	}
 
-	for i := 0; i < M; i++ {
+	for i := 0; i < numMapTasks; i++ {
 		mapTasks[i] = &MapTask{
 			id:		i,
 			mapf:		mapf,
@@ -354,10 +363,14 @@ func buildReduceTasks(
 	return reduceTasks
 }
 
-func build(sofilepath string, chunkFiles map[string]*os.File) ([]*Worker, []*MapTask, []*ReduceTask) {
+func build(
+	sofilepath string,
+	chunkFiles map[string]*os.File,
+	numMapTasks int) ([]*Worker, []*MapTask, []*ReduceTask) {
+
 	mapf, reducef := loadPlugin(sofilepath)
-	workers := buildWorkers(numWorkers)
-	mapTasks := buildMapTasks(M, chunkFiles, mapf)
+	workers := buildWorkers(numWorkers, numMapTasks)
+	mapTasks := buildMapTasks(numMapTasks, chunkFiles, mapf)
 	reduceTasks := buildReduceTasks(R, reducef)
 
 	return workers, mapTasks, reduceTasks

@@ -83,22 +83,22 @@ func hash(str string) int {
 	return int(hashVal.Sum32());
 }
 
-func createChunkFiles(filepath string) map[string]*os.File {
+func createChunkFiles(filepath string, numMapTasks int) map[string]*os.File {
 	checkDirExists("input_files/chunks/");
 	lineNum := 0;
 	file := safeOpen(filepath, "r");
 	scanner := bufio.NewScanner(file);
 
 	chunkFiles := make(map[string]*os.File);
-	for i:=1; i<=M; i++ {
-		chunkFileName := getChunkFileName(filepath, i, M);
+	for i:=1; i<=numMapTasks; i++ {
+		chunkFileName := getChunkFileName(filepath, i, numMapTasks);
 		os.Remove(chunkFileName);
 		chunkFiles[chunkFileName] = safeOpen(chunkFileName, "a");
 	}
 
 	for scanner.Scan() {
 		lineNum++;
-		chunkFileName := getChunkFileName(filepath, lineNum, M);
+		chunkFileName := getChunkFileName(filepath, lineNum, numMapTasks);
 		safeAppend(chunkFileName, scanner.Text()+"\n");
 	}
 

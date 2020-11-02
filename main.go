@@ -9,8 +9,6 @@ import (
 const numWorkers = 8
 //number of bytes in each inputFile-chunk
 const chunkSize = 100
-//number of map tasks ("M" is no longer used)
-const M = 8
 //number of reduce tasks
 const R = 8
 
@@ -35,19 +33,23 @@ func getNumMapTasks(filePath string) int {
 	}
 	fileSize := fileInfo.Size()
 	numMapTasks := float64(fileSize) / float64(chunkSize)
-	println(fileSize)
 	return int(math.Ceil(numMapTasks))
 }
 
 func main() {
 	inputFilePath, soFilepath := checkArgs(len(os.Args), os.Args)
-	chunkFiles := createChunkFiles(inputFilePath)
 
 	numMapTasks := getNumMapTasks(inputFilePath)
-	println(numMapTasks)
+
+	fmt.Println("exiting early (input file chunking is being re-implemented)")
+	os.Exit(0)
+
+	// to be re-implemented
+	chunkFiles := createChunkFiles(inputFilePath, numMapTasks)
+
 
 	createOutputDirs([]string {"./intermediate_files","./output_files"})
-	launchWorkers(soFilepath, chunkFiles)
+	launchWorkers(soFilepath, chunkFiles, numMapTasks)
 }
 
 
