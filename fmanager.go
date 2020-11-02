@@ -23,6 +23,7 @@ func safeOpen(filepath string, option string) *os.File {
 	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error opening file '%s'\n",filepath);
+		fmt.Println(err)
 		os.Exit(1);
 	}
 	return f;
@@ -140,6 +141,30 @@ func createOutputDirs(dirs []string) {
     	os.Mkdir(path, 0700)
 	}
 }
+
+func readFileByByteRange(start int64, offset int64, filePath string) string {
+	file := safeOpen(filePath, "r")
+	// advance file head 'start' number of bytes
+	val, seekErr := file.Seek(start, 0)
+	_ = val
+	if seekErr != nil {
+		fmt.Fprintf(os.Stderr, "error file seek '%s'\n",file.Name());
+		os.Exit(1);
+	}
+
+	// read 'offset' number of bytes from file
+	content := make([]byte, offset)
+	nBytesRead, readErr := file.Read(content)
+	_ = nBytesRead
+	if readErr != nil {
+		fmt.Fprintf(os.Stderr, "error file read '%s'\n",file.Name());
+		os.Exit(1);
+	}
+
+	return string(content)
+}
+
+
 
 
 

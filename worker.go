@@ -40,7 +40,8 @@ type TableEntry struct {
 type MapTask struct {
 	id 	int
 	mapf (func(string, string) []mr.KeyVal)
-	chunk *os.File
+	inputFilePath string
+	chunkOffset int64
 }
 
 type ReduceTask struct {
@@ -141,8 +142,10 @@ func (worker *Worker) assignReduce(
 }
 
 func (worker *Worker) doMap(task *MapTask) {
-	chunkFileContent := safeRead(task.chunk.Name())
-	kva := task.mapf(task.chunk.Name(),chunkFileContent)
+	//chunkFileContent := safeRead(task.chunk.Name())
+	chunkContent :=
+		readFileByByteRange(task.chunkOffset, chunkSize, task.inputFilePath)
+	kva := task.mapf("--REDUNDANT-FILE-NAME--",chunkContent)
 	m := make(map[int][]mr.KeyVal, R)
 	for _, kv := range kva {
 		partitionNum := hash(kv.Key) % R
@@ -287,11 +290,12 @@ func (worker *Worker) printTable() {
 }
 
 func launchWorkers(
-	sofilepath string,
-	chunkFiles map[string]*os.File,
+	inputFilePath string,
+	soFilePath string,
 	numMapTasks int) {
 
-	workers, mapTasks, reduceTaks := build(sofilepath, chunkFiles, numMapTasks)
+	workers, mapTasks, reduceTaks :=
+		build(inputFilePath, soFilePath, numMapTasks)
 	//master is worker with id 0
 	go workers[0].runMaster(mapTasks, reduceTaks)
 	//launch the rest of the workers
@@ -326,23 +330,17 @@ func buildWorkers(numWorkers int, numMapTasks int) []*Worker {
 
 func buildMapTasks(
 	numMapTasks int,
-	chunkFiles map[string]*os.File,
-	mapf (func(string,string) []mr.KeyVal)) []*MapTask {
+	mapf (func(string,string) []mr.KeyVal),
+	inputFilePath string) []*MapTask {
 
 	mapTasks := make([]*MapTask, numMapTasks)
 
-	chunkFileNames := make([]string, len(chunkFiles))
-	i := 0;
-	for k := range chunkFiles { 
-		chunkFileNames[i] = k;
-		i++;
-	}
-
 	for i := 0; i < numMapTasks; i++ {
 		mapTasks[i] = &MapTask{
-			id:		i,
-			mapf:		mapf,
-			chunk:	chunkFiles[chunkFileNames[i]],
+			id:				i,
+			mapf:				mapf,
+			inputFilePath:	inputFilePath,
+			chunkOffset:	int64(i)*chunkSize,
 		}
 	}
 	return mapTasks
@@ -364,13 +362,13 @@ func buildReduceTasks(
 }
 
 func build(
-	sofilepath string,
-	chunkFiles map[string]*os.File,
+	inputFilePath string,
+	soFilePath string,
 	numMapTasks int) ([]*Worker, []*MapTask, []*ReduceTask) {
 
-	mapf, reducef := loadPlugin(sofilepath)
+	mapf, reducef := loadPlugin(soFilePath)
 	workers := buildWorkers(numWorkers, numMapTasks)
-	mapTasks := buildMapTasks(numMapTasks, chunkFiles, mapf)
+	mapTasks := buildMapTasks(numMapTasks, mapf, inputFilePath)
 	reduceTasks := buildReduceTasks(R, reducef)
 
 	return workers, mapTasks, reduceTasks
