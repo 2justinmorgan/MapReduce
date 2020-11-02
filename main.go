@@ -3,10 +3,13 @@ package main
 import (
 	"fmt"
 	"os"
+	"math"
 )
 
 const numWorkers = 8
-//number of chunks of input data
+//number of bytes in each inputFile-chunk
+const chunkSize = 100
+//number of map tasks ("M" is no longer used)
 const M = 8
 //number of reduce tasks
 const R = 8
@@ -23,12 +26,28 @@ func checkArgs(argc int, argv []string) (string, string) {
 	return argv[1], argv[2]
 }
 
+func getNumMapTasks(filePath string) int {
+	file := safeOpen(filePath, "r")
+	fileInfo, fileStatErr := file.Stat()
+	if fileStatErr != nil {
+		fmt.Fprintf(os.Stderr, "error stat on file '%s'\n",filePath);
+		os.Exit(1);
+	}
+	fileSize := fileInfo.Size()
+	numMapTasks := float64(fileSize) / float64(chunkSize)
+	println(fileSize)
+	return int(math.Ceil(numMapTasks))
+}
+
 func main() {
-	filename, sofilepath := checkArgs(len(os.Args), os.Args)
-	chunkFiles := createChunkFiles(filename)
+	inputFilePath, soFilepath := checkArgs(len(os.Args), os.Args)
+	chunkFiles := createChunkFiles(inputFilePath)
+
+	numMapTasks := getNumMapTasks(inputFilePath)
+	println(numMapTasks)
 
 	createOutputDirs([]string {"./intermediate_files","./output_files"})
-	launchWorkers(sofilepath, chunkFiles)
+	launchWorkers(soFilepath, chunkFiles)
 }
 
 
