@@ -3,11 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
+	"math"
 )
 
 const numWorkers = 8
-//number of chunks of input data
-const M = 8
+//number of bytes in each inputFile-chunk
+const chunkSize = 64000
 //number of reduce tasks
 const R = 8
 
@@ -23,68 +24,27 @@ func checkArgs(argc int, argv []string) (string, string) {
 	return argv[1], argv[2]
 }
 
+func getNumMapTasks(filePath string) int {
+	file := safeOpen(filePath, "r")
+	fileInfo, fileStatErr := file.Stat()
+	if fileStatErr != nil {
+		fmt.Fprintf(os.Stderr, "error stat on file '%s'\n",filePath);
+		os.Exit(1);
+	}
+	fileSize := fileInfo.Size()
+	numMapTasks := float64(fileSize) / float64(chunkSize)
+	return int(math.Ceil(numMapTasks))
+}
+
 func main() {
-	filename, sofilepath := checkArgs(len(os.Args), os.Args)
-	chunkFiles := createChunkFiles(filename)
-	//make dir for intermediate files and output files to go in
-	checkDirExists("./intermediate_files")
-	checkDirExists("./output_files")
+	inputFilePath, soFilepath := checkArgs(len(os.Args), os.Args)
 
-	workers, mapTasks, reduceTaks := build(sofilepath, chunkFiles)	
-	//master is worker with id 0
-	go workers[0].runMaster(mapTasks, reduceTaks)
-	//launch the rest of the workers
-	for i := 1; i < numWorkers; i++ {
-		go workers[i].run()
-	}
-	for len(workers[0].workCompleted) < M+R{
-		//let workers run
-	}
+	numMapTasks := getNumMapTasks(inputFilePath)
+
+	createOutputDirs([]string {"./intermediate_files","./output_files"})
+	launchWorkers(inputFilePath, soFilepath, numMapTasks)
 }
 
-func build(sofilepath string, chunkFiles map[string]*os.File) ([]*Worker, []*MapTask, []*ReduceTask) {
-	workers := make([]*Worker, numWorkers)
-	mapTasks := make([]*MapTask, M)
-	reduceTasks := make([]*ReduceTask, R)
-	mapf, reducef := loadPlugin(sofilepath)
-
-	chunkFileNames := make([]string, len(chunkFiles))
-	i := 0;
-	for k := range chunkFiles { 
-		chunkFileNames[i] = k;
-		i++;
-	}
-
-	for i := 0; i < numWorkers; i++ {
-		workers[i] = &Worker{
-			id:       		i,
-			workers:  		workers,
-			table:			make([]*TableEntry, numWorkers),
-			tableInput:    make(chan []*TableEntry, numWorkers*2),
-			workRequests:  make(chan int, M*R),
-			workCompleted: make(chan int, M*R),
-			redoMap:			make(chan *MapTask, M),
-			redoReduce:		make(chan *ReduceTask, R),
-		}
-		for j := 0; j < numWorkers; j++ {
-			workers[i].table[j] = &TableEntry{id: j, hb: 0, t: 0}
-		}
-	}
-	for i := 0; i < M; i++ {
-		mapTasks[i] = &MapTask{
-			id:		i,
-			mapf:		mapf,
-			chunk:	chunkFiles[chunkFileNames[i]],
-		}
-	}
-	for i := 0; i < R; i++ {
-		reduceTasks[i] = &ReduceTask{
-			id:		i,
-			reducef:	reducef,
-		}
-	}
-	return workers, mapTasks, reduceTasks
-}
 
 
 

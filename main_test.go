@@ -169,8 +169,6 @@ func TestHash(t *testing.T) {
 	}
 }
 
-// TODO need to update test for doMap() instead of mapAndPartition()
-//
 //func TestMapAndPartition(t *testing.T) {
 //	var testCases = []struct {
 //		chunkFilePath string

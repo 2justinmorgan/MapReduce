@@ -23,6 +23,7 @@ func safeOpen(filepath string, option string) *os.File {
 	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error opening file '%s'\n",filepath);
+		fmt.Println(err)
 		os.Exit(1);
 	}
 	return f;
@@ -83,22 +84,22 @@ func hash(str string) int {
 	return int(hashVal.Sum32());
 }
 
-func createChunkFiles(filepath string) map[string]*os.File {
+func createChunkFiles(filepath string, numMapTasks int) map[string]*os.File {
 	checkDirExists("input_files/chunks/");
 	lineNum := 0;
 	file := safeOpen(filepath, "r");
 	scanner := bufio.NewScanner(file);
 
 	chunkFiles := make(map[string]*os.File);
-	for i:=1; i<=M; i++ {
-		chunkFileName := getChunkFileName(filepath, i, M);
+	for i:=1; i<=numMapTasks; i++ {
+		chunkFileName := getChunkFileName(filepath, i, numMapTasks);
 		os.Remove(chunkFileName);
 		chunkFiles[chunkFileName] = safeOpen(chunkFileName, "a");
 	}
 
 	for scanner.Scan() {
 		lineNum++;
-		chunkFileName := getChunkFileName(filepath, lineNum, M);
+		chunkFileName := getChunkFileName(filepath, lineNum, numMapTasks);
 		safeAppend(chunkFileName, scanner.Text()+"\n");
 	}
 
@@ -128,3 +129,43 @@ func loadPlugin(filename string) (func(string, string) []mr.KeyVal, func(string,
 
 	return mapf, reducef
 }
+
+func createOutputDirs(dirs []string) {
+	//make dir for intermediate files and output files to go in
+	path := "./intermediate_files"
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+    	os.Mkdir(path, 0700)
+	}
+	path = "./output_files"
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+    	os.Mkdir(path, 0700)
+	}
+}
+
+func readFileByByteRange(start int64, offset int64, filePath string) string {
+	file := safeOpen(filePath, "r")
+	// advance file head 'start' number of bytes
+	val, seekErr := file.Seek(start, 0)
+	_ = val
+	if seekErr != nil {
+		fmt.Fprintf(os.Stderr, "error file seek '%s'\n",file.Name());
+		os.Exit(1);
+	}
+
+	// read 'offset' number of bytes from file
+	content := make([]byte, offset)
+	nBytesRead, readErr := file.Read(content)
+	_ = nBytesRead
+	if readErr != nil {
+		fmt.Fprintf(os.Stderr, "error file read '%s'\n",file.Name());
+		os.Exit(1);
+	}
+
+	return string(content)
+}
+
+
+
+
+
+

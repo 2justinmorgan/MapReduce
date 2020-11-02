@@ -16,6 +16,11 @@ to run:
 
     ./main <input_file.txt> <*.so>
 	
+       or
+
+	 (will build plugins, compile, and run code)
+    ./run.sh <input_file.txt>
+
 to test:
 
     go test
